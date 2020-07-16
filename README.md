@@ -12,12 +12,12 @@
 <br/>
 <br/>
 
-* **Variabel liste** 
+* **Variable list** 
 <img src="Illustrasjoner/variabelliste.png" width ="400">
 <br/>
 <br/>
 <br/>
 
 
-**Matdoz, Desember 2019**
+**Matdoz, December 2019**
 
