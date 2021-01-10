@@ -1,23 +1,31 @@
 # MiniGebra 
 
-* **MiniGebra interface**
-<img src="Illustrasjoner/UI.png" width="300">
+* **MiniGebra UI with and without Dark mode**
+<p style="float: left">
+<img src="Illustrations/UI.png" width="45%">
+<img src="Illustrations/UI-dark.png" width="45%">
+</p>
 <br/>
 <br/>
 <br/>
 
 * **Log**
-<img src="Illustrasjoner/log.png" width="300">
+<p style="float: left">
+<img src="Illustrations/log.png" width="45%">
+<img src="Illustrations/Log-dark.png" width="45%">
+</p>
 <br/>
 <br/>
 <br/>
 
-* **Variabel liste** 
-<img src="Illustrasjoner/variable.png" width ="300">
+* **Variable List** 
+<p style="float: left">
+<img src="Illustrations/variable.png" width="45%">
+<img src="Illustrations/Variable-dark.png" width="45%">
+</p>
 <br/>
 <br/>
 <br/>
 
 
-**Matdoz, Desember 2019**
-
+**Matdoz, December 2019**
