@@ -1,4 +1,4 @@
-# MiniGebra <img src="Illustrasjoner/icon.png" width="80">
+# MiniGebra <img src="Illustrations/icon.png" width="80">
 
 * **MiniGebra UI with and without Dark mode**
 <p style="float: left">
