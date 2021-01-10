@@ -167,7 +167,9 @@ class CalculatorViewController: NSViewController
     {
         if let i = ans.firstIndex(of: "e") {
             ans.remove(at: i)
+            ans.insert(contentsOf: "(", at: ans.startIndex)
             ans.insert(contentsOf: "*10^", at: i)
+            ans.insert(contentsOf: ")", at: ans.endIndex)
         }
         textField.currentEditor()?.insertText(ans)
     }
