@@ -1,7 +1,7 @@
 # MiniGebra 
 
 * **MiniGebra interface**
-<img src="Illustrasjoner/interface.png" width="300">
+<img src="Illustrasjoner/UI.png" width="300">
 <br/>
 <br/>
 <br/>
@@ -13,7 +13,7 @@
 <br/>
 
 * **Variabel liste** 
-<img src="Illustrasjoner/variabelliste.png" width ="300">
+<img src="Illustrasjoner/variable.png" width ="300">
 <br/>
 <br/>
 <br/>

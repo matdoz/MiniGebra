@@ -6,6 +6,7 @@
 //  Copyright © 2019 Mathias Lunner Dozsa. All rights reserved.
 //
 
+/* Logic for Ans combined with ^ expressions needs to be improved*/
 #include "Calculate.hpp"
 
 /* Mottar mattestykket i en string og parser stringen til en vektor med tokens */

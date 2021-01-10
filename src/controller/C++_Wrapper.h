@@ -9,8 +9,8 @@
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 #import "Calculate.hpp"
-#import "Token.hpp"
-#import "Variable.hpp"
+#import "../model/Token.hpp"
+#import "../model/Variable.hpp"
 
 @interface TS : NSObject
 {}
