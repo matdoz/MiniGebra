@@ -15,11 +15,15 @@ class LogAndVariableListViewController: NSViewController, NSTableViewDataSource,
     @IBOutlet var LogAC: NSArrayController!
     @IBOutlet var logTable: NSTableColumn!
     @IBOutlet var varTable: NSTableColumn!
+    @IBOutlet var logTab: NSTabViewItem!
+    @IBOutlet var varTab: NSTabViewItem!
+    var width = CGFloat(0)
     
     override func viewDidLoad()
     {
         super.viewDidLoad()
         lavvc = self
+        width = lavvc.logTable.width
     }
     
     override var representedObject: Any?
@@ -54,10 +58,42 @@ class LogAndVariableListViewController: NSViewController, NSTableViewDataSource,
         lavvc.VariableAC.addObject(item)
     }
     
+    @IBAction func clear(_ sender: Any)
+    {
+        
+        if logTab.tabState == .selectedTab
+        {
+            clearLog()
+        }
+        if varTab.tabState == .selectedTab
+        {
+            clearVar()
+        }
+    }
+    
+    func clearLog()
+    {
+        lavvc.logTable.width = width
+        for _ in lavvc.LogAC.arrangedObjects as! [AnyObject]
+        {
+            lavvc.LogAC.remove(self)
+        }
+    }
+    
+    func clearVar()
+    {
+        TS().clear()
+        lavvc.varTable.width = width
+        for _ in lavvc.VariableAC.arrangedObjects as! [AnyObject]
+        {
+            lavvc.VariableAC.remove(self)
+        }
+    }
+    
     func clearLogAndVar()
     {
-        lavvc.logTable.width = 288
-        lavvc.varTable.width = 288
+        lavvc.logTable.width = width
+        lavvc.varTable.width = width
         for _ in lavvc.LogAC.arrangedObjects as! [AnyObject]
         {
             lavvc.LogAC.remove(self)

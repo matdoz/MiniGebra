@@ -10,14 +10,35 @@ import Cocoa
 
 class CalculatorViewController: NSViewController
 {
-    override func viewDidLoad()
-    {
-        super.viewDidLoad()
-    }
-    
     @IBOutlet weak var label: NSTextField!
     @IBOutlet weak var textField: NSTextField!
     var ans = ""
+    var isDark = false
+    
+    /*override func viewDidLoad()
+    {
+        super.viewDidLoad()
+    }*/
+    
+    @IBAction func darkMode(_ sender: Any)
+    {
+        let window = NSApplication.shared.windows
+        if isDark {
+            isDark = false
+            for window in window
+            {
+                window.appearance = NSAppearance(named: .aqua)
+            }
+        }
+        else
+        {
+            isDark = true
+            for window in window
+            {
+                window.appearance = NSAppearance(named: .darkAqua)
+            }
+        }
+    }
     
     @IBAction func B1(_ sender: Any)
     {
@@ -146,7 +167,9 @@ class CalculatorViewController: NSViewController
     {
         if let i = ans.firstIndex(of: "e") {
             ans.remove(at: i)
+            ans.insert(contentsOf: "(", at: ans.startIndex)
             ans.insert(contentsOf: "*10^", at: i)
+            ans.insert(contentsOf: ")", at: ans.endIndex)
         }
         textField.currentEditor()?.insertText(ans)
     }
