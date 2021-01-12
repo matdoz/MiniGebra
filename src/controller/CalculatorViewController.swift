@@ -15,11 +15,6 @@ class CalculatorViewController: NSViewController
     var ans = ""
     var isDark = false
     
-    /*override func viewDidLoad()
-    {
-        super.viewDidLoad()
-    }*/
-    
     @IBAction func darkMode(_ sender: Any)
     {
         let window = NSApplication.shared.windows

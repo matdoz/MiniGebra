@@ -14,10 +14,9 @@
 
 extern "C"
 {
-    class calculate
+    class Calculate
     {
     private:
-        std::string token;
         std::string answer = "";
         std::vector<Token> token_stream;
         int runTime = 0;
@@ -36,7 +35,12 @@ extern "C"
         bool isVariable = false;
         bool isPow = false;
     public:
-        const char* parsing(const char* input, Variable& va);
+        // Testing from here
+        void addOperator(int& i, std::string& token, std::string& theNum, Variable& va);
+        void addVariable(int& i, std::string& token, Variable& va);
+        void addNumber(int& i, std::string& token, std::string& theNum);
+        //
+        const char* parsing(const char* input, Variable& v);
         void result();
         void checkForParenthesesPower();
         void checkForMultiplicationDivisionModulo();

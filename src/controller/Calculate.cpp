@@ -7,136 +7,169 @@
 //
 
 #include "Calculate.hpp"
-
-/* Mottar mattestykket i en string og parser stringen til en vektor med tokens */
-const char* calculate::parsing(const char* input, Variable& va)
+void Calculate::addNumber(int& i, std::string& token, std::string& theNum)
 {
-    va.setCreated(0);
-    std::string theNum = "";
-    token = removeSpaces(input);
-    
-    /* Error ingenting ble skrevet inn. */
-    if (token == "")
-        throw std::exception();
-    
-    for (int i = 0; i < token.length(); i++)
+    bool isDecimal = false;
+    for (int j = i; j < token.length(); j++)
     {
-        /* Sjekker om det som er skrevet inn er et tall, ett '.' eller en variabel, og i tilfelle variabel at det ikke er en variabel deklarasjon. */
-        if (isdigit(token.at(i)) || token.at(i) == '.' || (va.isVariable(token.at(i)) && i + 1 < token.length() && token.at(i + 1) != '=') || (va.isVariable(token.at(i)) && token.length() <= i + 1))
+        if (isdigit(token.at(j)) || token.at(j) == '.')
         {
-            if (va.isVariable(token.at(i)))
-            {
-                bool isInserted = false;
-                /* Sjekker om variabelen har tall eller variable på begge eller én av sidene sine. */
-                if ((i + 1 < token.length() &&
-                    (token.at(i + 1) == '.' ||
-                     token.at(i + 1) == '(' ||
-                     isdigit(token.at(i + 1))) &&
-                    i > 0 &&
-                    (token.at(i - 1) == '.' ||
-                    token.at(i - 1) == ')' ||
-                     isdigit(token.at(i - 1)) ||
-                     va.isVariable(token.at(i - 1)))) && (!isOperator(token_stream[i].getKind()) && !isOperator(token_stream[i - 1].getKind()) && !isOperator(token_stream[i + 1].getKind())))
-                {
-                    token_stream.push_back(Token('*'));
-                    token_stream.push_back(Token(va.getValue(token.at(i)), number));
-                    token_stream.push_back(Token('*'));
-                    isInserted = true;
-                }
-                
-                if (!isInserted && i + 1 < token.length() && (token.at(i + 1) == '.' || token.at(i + 1) == '(' || isdigit(token.at(i + 1)) || va.isVariable(token.at(i + 1))))
-                {
-                    if (token_stream[token_stream.size() - 1].getKind() == number && token_stream.size() > 0)
-                        token_stream.push_back(Token('*'));
-                    
-                    token_stream.push_back(Token(va.getValue(token.at(i)), number));
-                    token_stream.push_back(Token('*'));
-                    isInserted = true;
-                }
-                
-                if (!isInserted && i > 0 && (token.at(i - 1) == '.' || token.at(i - 1) == ')' || isdigit(token.at(i - 1))))
-                    token_stream.push_back(Token('*'));
-                
-                if (!isInserted)
-                    token_stream.push_back(Token(va.getValue(token.at(i)), number));
-            }
+            /*---------------------
+            Error more than one '.'
+            ----------------------*/
+            if (token.at(j) == '.' && isDecimal) throw std::exception();
             
-            else
+            theNum += token.at(j);
+            i++;
+            if (token.at(j) == '.') isDecimal = true;
+        }
+        else break;
+    }
+    
+    /*--------------------
+    Error only '.' in input
+    ---------------------*/
+    if (theNum == ".") throw std::exception();
+
+    long double num = std::stold(theNum);
+    token_stream.push_back(Token(num,number));
+    theNum = "";
+    i--;
+}
+
+void Calculate::addVariable(int& i, std::string& token, Variable& va)
+{
+    if (((i + 1) < token.length() && token.at(i + 1) != '=') || (i + 1) == token.length())
+    {
+    
+        /*--------------------------------------------------------------------------------------------
+        Checks whether the variable has either numbers or variables on either one or both of its sides
+        ---------------------------------------------------------------------------------------------*/
+        if (i > 0 && (i + 1) < token.length())
+        {
+            if ((token.at(i + 1) == '(' || isdigit(token.at(i + 1)) || va.isVariable(token.at(i + 1)))
+                && (token.at(i - 1) == '.' || token.at(i - 1) == ')' || isdigit(token.at(i - 1))))
             {
-                bool isDecimal = false;
-                for (int j = i; j < token.length(); j++)
-                {
-                    if (isdigit(token.at(j)) || token.at(j) == '.')
-                    {
-                        if (isDecimal) decimalPrecision++;
-
-                        /* Error flere enn ett '.'. */
-                        if (token.at(j) == '.' && isDecimal)
-                            throw std::exception();
-                        
-                        theNum += token.at(j);
-                        i++;
-                        if (token.at(j) == '.') isDecimal = true;
-                    }
-                    
-                    else break;
-                }
-                
-                /* Error bare '.' ble skrevet inn. */
-                if (theNum == ".")
-                    throw std::exception();
-
-                /* stod konverteter string til double. */
-                long double num = std::stold(theNum);
-                token_stream.push_back(Token(num,number));
-                theNum = "";
-                i--;
+                token_stream.push_back(Token('*'));
+                token_stream.push_back(Token(va.getValue(token.at(i)), number));
+                token_stream.push_back(Token('*'));
+                i++;
+                token.insert((i-1), "*");
+                token.insert((i + 1), "*");
+                i++;
             }
         }
         
-        else
+        /*-----------------------------------------------------------------------
+        Checks whether the variable has either numbers or variables infront of it
+        ------------------------------------------------------------------------*/
+        else if ((i + 1) < token.length() && (token.at(i + 1) == '.' || token.at(i + 1) == '(' || isdigit(token.at(i + 1)) || va.isVariable(token.at(i + 1))))
         {
-            if (isOperator(token.at(i))) token_stream.push_back(Token(token.at(i)));
-            else
-            {
-                if (i == 0 && !isVariable)
-                {
-                    if (token.length() >= 3 && (isalpha(token.at(i)) && token.at(i + 1) == '=' && !isVariable))
-                    {
-                        isVariable = true;
-                        char name = token.at(i);
-                        token.erase(0, 2);
-                        theNum = std::string(parsing(token.c_str(), va));
-                        if (isReady)
-                        {
-                            long double num = std::stold(theNum);
-                            va.addVariable(Variable(name, num));
-                            answer = name;
-                            answer += " = ";
-                            answer += theNum;
-                            va.setCreated(1);
-                            theNum = "";
-                            i--;
-                            token = "";
-                            isReady = false;
-                        }
-                        isVariable = false;
-                    }
-                    /* Ugyldig input */
-                    else throw std::exception();
-                }
-                /* Ugyldig input */
-                else throw std::exception();
-            }
+            token_stream.push_back(Token(va.getValue(token.at(i)), number));
+            token_stream.push_back(Token('*'));
+            token.insert((i + 1), "*");
+            i++;
         }
+        
+        /*-------------------------------------------------------------------
+        Checks whether the variable has either numbers or variables behind it
+        --------------------------------------------------------------------*/
+        else if (i > 0 && (token.at(i - 1) == ')' || isdigit(token.at(i - 1)) || va.isVariable(token.at(i - 1))))
+        {
+            i++;
+            token.insert((i - 1), "*");
+            token_stream.push_back(Token('*'));
+            token_stream.push_back(Token(va.getValue(token.at(i)), number));
+        }
+        
+        /*-----------------------------------------------------------------------------
+        Inserts the variables value as there are or need for the insertion of operators
+        ------------------------------------------------------------------------------*/
+        else token_stream.push_back(Token(va.getValue(token.at(i)), number));
+    }
+}
+
+void Calculate::addOperator(int& i, std::string& token, std::string& theNum, Variable& va)
+{
+    if (isOperator(token.at(i))) token_stream.push_back(Token(token.at(i)));
+    else
+    {
+        if (i == 0 && !isVariable)
+        {
+            if (token.length() >= 3 && (isalpha(token.at(i)) && token.at(i + 1) == '=' && !isVariable))
+            {
+                isVariable = true;
+                char name = token.at(i);
+                token.erase(0, 2);
+                theNum = std::string(parsing(token.c_str(), va));
+                if (isReady)
+                {
+                    long double num = std::stold(theNum);
+                    va.addVariable(Variable(name, num));
+                    answer = name;
+                    answer += " = ";
+                    answer += theNum;
+                    va.setCreated(1);
+                    theNum = "";
+                    i--;
+                    token = "";
+                    isReady = false;
+                }
+                isVariable = false;
+            }
+            /*-----------------
+            Error invalid input
+            ------------------*/
+            else throw std::exception();
+        }
+        /*-----------------
+        Error invalid input
+        ------------------*/
+        else throw std::exception();
+    }
+}
+
+/*---------------------------------------------------------------------
+Receives the calculation as a string and parses the string into tokens
+---------------------------------------------------------------------*/
+const char* Calculate::parsing(const char* input, Variable& va)
+{
+    va.setCreated(0);
+    std::string theNum = "";
+    std::string token(input);
+    token = removeSpaces(input);
+    
+    /*------------
+    Error no input
+    -------------*/
+    if (token == "") throw std::exception();
+    
+    /*--------------------------------------------------
+    This is for redeclaring an already declared variable
+    --------------------------------------------------*/
+    if(va.isVariable(token.at(0)) && token.length() >= 3)
+        if(token.at(1) == '=')
+            va.removeVariable(token.at(0));
+    
+    /*----------------------------
+    Iterates over the token stream
+    -----------------------------*/
+    for (int i = 0; i < token.length(); i++)
+    {
+        // Trying to polish using ternary ? operator in this segment here
+        isdigit(token.at(i)) || token.at(i) == '.' ? addNumber(i, token, theNum) :
+        va.isVariable(token.at(i)) && (i + 1) <= token.length() ? addVariable(i, token, va) : addOperator(i, token, theNum, va);
+        //
     }
     if (isReady) result();
     if (!isVariable) cleanUp(0);
     return answer.c_str();
 }
 
-/* Opererer på vektoren med tokens frem til det kun er ett tall token igjen i vektoren */
-void calculate::result()
+/*-----------------------------------------------------------------------
+Calculates the token stream until there is only one token left/the answer
+-----------------------------------------------------------------------*/
+void Calculate::result()
 {
     while (token_stream.size() > 1 && isReady)
     {
@@ -155,7 +188,7 @@ void calculate::result()
 }
 
 /* Leter etter parentes og potens */
-void calculate::checkForParenthesesPower()
+void Calculate::checkForParenthesesPower()
 {
     if (isReady) {
         unsigned long length = token_stream.size() - 1;
@@ -167,13 +200,11 @@ void calculate::checkForParenthesesPower()
             case '(':
                 for (int j = iteration; j < token_stream.size(); j++)
                 {
-                    if (token_stream[j].getKind() == '^' && !isParentheses)
-                        isPow = true;
+                    if (token_stream[j].getKind() == '^' && !isParentheses) isPow = true;
                     
                     if (token_stream[j].getKind() == '(' && secondParenthesesIndex <= 0) firstParenthesesIndex = j;
                     
-                    if (token_stream[j].getKind() == '(')
-                        parenthesesPair++;
+                    if (token_stream[j].getKind() == '(') parenthesesPair++;
                     
                     if (token_stream[j].getKind() == ')' && secondParenthesesIndex <= 0)
                     {
@@ -181,8 +212,7 @@ void calculate::checkForParenthesesPower()
                         isParentheses = true;
                     }
                     
-                    if (token_stream[j].getKind() == ')')
-                        parenthesesPair--;
+                    if (token_stream[j].getKind() == ')') parenthesesPair--;
                 }
                 
                 /* Error åpen parentes */
@@ -349,7 +379,7 @@ void calculate::checkForParenthesesPower()
 }
 
 /* Leter etter gange, dele og modulo */
-void calculate::checkForMultiplicationDivisionModulo()
+void Calculate::checkForMultiplicationDivisionModulo()
 {
     if (isReady) {
         unsigned long length = token_stream.size() - 1;
@@ -379,7 +409,7 @@ void calculate::checkForMultiplicationDivisionModulo()
 }
 
 /* Leter etter pluss og minus */
-void calculate::checkForMinusPlus()
+void Calculate::checkForMinusPlus()
 {
     if (isReady) {
         unsigned long length = token_stream.size() - 1;
@@ -412,7 +442,7 @@ void calculate::checkForMinusPlus()
 }
 
 /* Funnet gange, dele eller modulo, utfører regneoperasjon */
-void calculate::MultiplicationDivisionModulo(char op)
+void Calculate::MultiplicationDivisionModulo(char op)
 {
     if (isReady) {
         unsigned long length = token_stream.size() - 1;
@@ -531,7 +561,7 @@ void calculate::MultiplicationDivisionModulo(char op)
 }
 
 /* Funnet pluss eller minus, utfører regneoperasjon */
-void calculate::MinusPlus(char op)
+void Calculate::MinusPlus(char op)
 {
     if (isReady) {
         unsigned long length = token_stream.size() - 1;
@@ -601,7 +631,7 @@ void calculate::MinusPlus(char op)
 }
 
 /* Funnet operator */
-void calculate::foundOperatorFirst(char op)
+void Calculate::foundOperatorFirst(char op)
 {
     if (isReady) {
         if (op == '-') negative++;
@@ -674,25 +704,23 @@ void calculate::foundOperatorFirst(char op)
 }
 
 /* Setter inn tokens i vektoren */
-void calculate::insert(int index, Token token)
+void Calculate::insert(int index, Token token)
 {
     token_stream.insert(token_stream.begin() + index, token);
 }
 
 /* Sletter tokens fra vektoren */
-void calculate::remove(int removeIndex, int removeTimes)
+void Calculate::remove(int removeIndex, int removeTimes)
 {
     for (int i = 0; i < removeTimes; i++) token_stream.erase(token_stream.begin() + removeIndex);
 }
 
 /* Rydder opp i variablene */
-void calculate::cleanUp(int whichFunction)
+void Calculate::cleanUp(int whichFunction)
 {
     switch (whichFunction)
     {
         case 0:
-            decimalPrecision = 0;
-            token = "";
             token_stream.clear();
             runTime = 0;
             firstParenthesesIndex = 0;
@@ -748,20 +776,23 @@ void calculate::cleanUp(int whichFunction)
     }
 }
 
-/* Sjekker om det er en operator */
-bool calculate::isOperator(char op)
+/*---------------------------
+Checks if char is an operator
+---------------------------*/
+bool Calculate::isOperator(char op)
 {
     return (op == '(' || op == ')' || op == '*' || op == '/' || op == '+' || op == '-' || op == '%' || op == '^');
 }
 
-/* Function to remove spaces, funnet på nettet geeksforgeeks.org */
-std::string calculate::removeSpaces(std::string str)
+/*---------------------------------------------------
+Function to remove spaces, found on geeksforgeeks.org
+---------------------------------------------------*/
+std::string Calculate::removeSpaces(std::string str)
 {
     std::stringstream ss;
     std::string temp;
     ss << str;
     str = "";
-    
     while (!ss.eof())
     {
         ss >> temp;
@@ -770,11 +801,11 @@ std::string calculate::removeSpaces(std::string str)
     return str;
 }
 
-std::string calculate::setDecimalPoint(long double value)
+std::string Calculate::setDecimalPoint(long double value)
 {
     std::ostringstream streamObj1;
     std::string ans;
-    /* Kan endre til std::fixed, std::scientific */
+    /* Can use: std::fixed, std::scientific */
     streamObj1 << std::defaultfloat;
     
     /* Add double to stream */

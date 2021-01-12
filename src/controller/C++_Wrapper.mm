@@ -7,11 +7,12 @@
 //
 
 #import "C++_Wrapper.h"
-calculate c;
-Variable va;
+//calculate c;
+//Variable va;
 
 @implementation TS
-
+Calculate* c = new Calculate();
+Variable* v = new Variable();
 -(NSString*) tokens:(NSString*)input
 {
     
@@ -19,24 +20,24 @@ Variable va;
     NSString* myNSString;
     try
     {
-        myNSString = [NSString stringWithCString:c.parsing(ptr, va) encoding:NSASCIIStringEncoding];
+        myNSString = [NSString stringWithCString:c->parsing(ptr, *v) encoding:NSASCIIStringEncoding];
     }
     catch (std::exception& e)
     {
         myNSString = @"Syntax Error";
-        c.cleanUp(0);
+        c->cleanUp(0);
     }
     return myNSString;
 }
 
 -(void) clear
 {
-    va.clear();
+    v->clear();
 }
 
 -(bool) isVarCreated
 {
-    return va.getCreated();
+    return v->getCreated();
 }
 
 @end

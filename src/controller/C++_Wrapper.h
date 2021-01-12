@@ -6,6 +6,7 @@
 //  Copyright © 2019 Mathias Lunner Dozsa. All rights reserved.
 //
 
+
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 #import "Calculate.hpp"
@@ -17,5 +18,5 @@
 -(void) clear;
 -(NSString*) tokens:(NSString*) input;
 -(bool) isVarCreated;
-
 @end
+
