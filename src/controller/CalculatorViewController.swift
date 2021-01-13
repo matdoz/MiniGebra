@@ -18,7 +18,8 @@ class CalculatorViewController: NSViewController
     @IBAction func darkMode(_ sender: Any)
     {
         let window = NSApplication.shared.windows
-        if isDark {
+        if isDark
+        {
             isDark = false
             for window in window
             {
@@ -89,22 +90,40 @@ class CalculatorViewController: NSViewController
     {
         textField.currentEditor()?.insertText(".")
     }
-    
-    
+        
     @IBAction func BEqual(_ sender: Any)
     {
         Clear.title = "C"
         label.stringValue = TS().tokens(textField.stringValue)
         let log = textField.stringValue + " = " + label.stringValue
-        if (!TS().isVarCreated() && label.stringValue != "Syntax Error")
+        var isVar = false
+        for x in label.stringValue
         {
-            LogAndVariableListViewController().addLog(log: log)
+            if x == "=" {
+                isVar = true
+            }
+        }
+        if (!isVar && label.stringValue != "Syntax Error")
+        {
+            lavvc.addLog(log: log)
+            //LogAndVariableListViewController().addLog(log: log)
             ans = label.stringValue
         }
-        else if (TS().isVarCreated() && (label.stringValue != "Syntax Error"))
+        else if (isVar && (label.stringValue != "Syntax Error"))
         {
-            LogAndVariableListViewController().addVariable(variable: label.stringValue)
+            lavvc.addVariable(variable: label.stringValue)
+            //LogAndVariableListViewController().addVariable(variable: label.stringValue)
         }
+       /* else
+        {
+            for element in lavvc.VariableAC.arrangedObjects as! [Variable]
+            {
+                if !TS().isVariable(element.nameOfVar)
+                {
+                    lavvc.VariableAC.removeObject(element)
+                }
+            }
+        }*/
     }
     
     @IBAction func BDivision(_ sender: Any)
@@ -136,7 +155,8 @@ class CalculatorViewController: NSViewController
             textField.stringValue = ""
             TS().clear();
             ans = ""
-            LogAndVariableListViewController().clearLogAndVar()
+            lavvc.clearLogAndVar()
+            //LogAndVariableListViewController().clearLogAndVar()
             Clear.title = "C"
         }
         else
@@ -160,7 +180,8 @@ class CalculatorViewController: NSViewController
     
     @IBAction func Bans(_ sender: Any)
     {
-        if let i = ans.firstIndex(of: "e") {
+        if let i = ans.firstIndex(of: "e")
+        {
             ans.remove(at: i)
             ans.insert(contentsOf: "*10^", at: i)
             ans.insert(contentsOf: "(", at: ans.startIndex)

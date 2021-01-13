@@ -68,6 +68,7 @@ class LogAndVariableListViewController: NSViewController, NSTableViewDataSource,
         if varTab.tabState == .selectedTab
         {
             clearVar()
+            
         }
     }
     

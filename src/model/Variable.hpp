@@ -18,21 +18,19 @@ extern "C"
     class Variable
     {
     private:
-        bool created = false;
         long double value;
         char name;
         std::vector<Variable> variableTable {};
     public:
         Variable(char name, long double value);
         Variable();
+        Variable* getVar(char name);
         void addVariable(Variable a);
         void removeVariable(char a);
-        void setCreated(int sw);
         void clear();
         long double getValue(char name);
         char getName();
         bool isVariable(char name);
-        bool getCreated();
     };
 }
 #endif

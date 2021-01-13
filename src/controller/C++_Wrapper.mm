@@ -7,9 +7,6 @@
 //
 
 #import "C++_Wrapper.h"
-//calculate c;
-//Variable va;
-
 @implementation TS
 Calculate* c = new Calculate();
 Variable* v = new Variable();
@@ -35,9 +32,8 @@ Variable* v = new Variable();
     v->clear();
 }
 
--(bool) isVarCreated
+-(bool) isVariable:(char)c
 {
-    return v->getCreated();
+    return v->isVariable(c);
 }
-
 @end

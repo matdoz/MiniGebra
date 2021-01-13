@@ -7,7 +7,7 @@
 //
 
 #include "Calculate.hpp"
-void Calculate::addNumber(int& i, std::string& token, std::string& theNum)
+void Calculate::addNumber(int& i, std::string& token, std::string& theNum, Variable& va)
 {
     bool isDecimal = false;
     for (int j = i; j < token.length(); j++)
@@ -29,7 +29,15 @@ void Calculate::addNumber(int& i, std::string& token, std::string& theNum)
     /*--------------------
     Error only '.' in input
     ---------------------*/
-    if (theNum == ".") throw std::exception();
+    if (theNum == ".")
+    {
+        if (temp != NULL)
+        {
+            va.addVariable(*temp);
+            temp = NULL;
+        }
+        throw std::exception();
+    }
 
     long double num = std::stold(theNum);
     token_stream.push_back(Token(num,number));
@@ -37,7 +45,7 @@ void Calculate::addNumber(int& i, std::string& token, std::string& theNum)
     i--;
 }
 
-void Calculate::addVariable(int& i, std::string& token, Variable& va)
+void Calculate::declareVariable(int& i, std::string& token, Variable& va)
 {
     if (((i + 1) < token.length() && token.at(i + 1) != '=') || (i + 1) == token.length())
     {
@@ -45,7 +53,7 @@ void Calculate::addVariable(int& i, std::string& token, Variable& va)
         /*--------------------------------------------------------------------------------------------
         Checks whether the variable has either numbers or variables on either one or both of its sides
         ---------------------------------------------------------------------------------------------*/
-        if (i > 0 && (i + 1) < token.length())
+        if (i > 0 && (i + 1) < token.length() && (token.at(i - 1) == '.' || token.at(i - 1) == ')' || isdigit(token.at(i - 1))))
         {
             if ((token.at(i + 1) == '(' || isdigit(token.at(i + 1)) || va.isVariable(token.at(i + 1)))
                 && (token.at(i - 1) == '.' || token.at(i - 1) == ')' || isdigit(token.at(i - 1))))
@@ -89,7 +97,7 @@ void Calculate::addVariable(int& i, std::string& token, Variable& va)
     }
 }
 
-void Calculate::addOperator(int& i, std::string& token, std::string& theNum, Variable& va)
+void Calculate::addOperatorOrVariable(int& i, std::string& token, std::string& theNum, Variable& va)
 {
     if (isOperator(token.at(i))) token_stream.push_back(Token(token.at(i)));
     else
@@ -109,7 +117,6 @@ void Calculate::addOperator(int& i, std::string& token, std::string& theNum, Var
                     answer = name;
                     answer += " = ";
                     answer += theNum;
-                    va.setCreated(1);
                     theNum = "";
                     i--;
                     token = "";
@@ -120,12 +127,28 @@ void Calculate::addOperator(int& i, std::string& token, std::string& theNum, Var
             /*-----------------
             Error invalid input
             ------------------*/
-            else throw std::exception();
+            else
+            {
+                if (temp != NULL)
+                {
+                    va.addVariable(*temp);
+                    temp = NULL;
+                }
+                throw std::exception();
+            }
         }
         /*-----------------
         Error invalid input
         ------------------*/
-        else throw std::exception();
+        else
+        {
+            if (temp != NULL)
+            {
+                va.addVariable(*temp);
+                temp = NULL;
+            }
+            throw std::exception();
+        }
     }
 }
 
@@ -134,7 +157,6 @@ Receives the calculation as a string and parses the string into tokens
 ---------------------------------------------------------------------*/
 const char* Calculate::parsing(const char* input, Variable& va)
 {
-    va.setCreated(0);
     std::string theNum = "";
     std::string token(input);
     token = removeSpaces(input);
@@ -149,17 +171,18 @@ const char* Calculate::parsing(const char* input, Variable& va)
     --------------------------------------------------*/
     if(va.isVariable(token.at(0)) && token.length() >= 3)
         if(token.at(1) == '=')
+        {
+            temp = va.getVar(token.at(0));
             va.removeVariable(token.at(0));
+        }
     
     /*----------------------------
     Iterates over the token stream
     -----------------------------*/
     for (int i = 0; i < token.length(); i++)
     {
-        // Trying to polish using ternary ? operator in this segment here
-        isdigit(token.at(i)) || token.at(i) == '.' ? addNumber(i, token, theNum) :
-        va.isVariable(token.at(i)) && (i + 1) <= token.length() ? addVariable(i, token, va) : addOperator(i, token, theNum, va);
-        //
+        isdigit(token.at(i)) || token.at(i) == '.' ? addNumber(i, token, theNum, va) :
+        va.isVariable(token.at(i)) && (i + 1) <= token.length() ? declareVariable(i, token, va) : addOperatorOrVariable(i, token, theNum, va);
     }
     if (isReady) result();
     if (!isVariable) cleanUp(0);
@@ -195,7 +218,7 @@ void Calculate::checkForParenthesesPower()
         switch (token_stream[iteration].getKind())
         {
             case ')':
-                /* Error fant ')' før '(' */
+                /* Error fant ')' før '(' Kan få feil her noen ganger må undersøkes nærmere*/
                 throw std::exception();
             case '(':
                 for (int j = iteration; j < token_stream.size(); j++)

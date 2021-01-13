@@ -34,13 +34,13 @@ extern "C"
         bool isReady = true;
         bool isVariable = false;
         bool isPow = false;
+        Variable* temp = NULL;
+        
     public:
-        // Testing from here
-        void addOperator(int& i, std::string& token, std::string& theNum, Variable& va);
-        void addVariable(int& i, std::string& token, Variable& va);
-        void addNumber(int& i, std::string& token, std::string& theNum);
-        //
-        const char* parsing(const char* input, Variable& v);
+        void addOperatorOrVariable(int& i, std::string& token, std::string& theNum, Variable& va);
+        void declareVariable(int& i, std::string& token, Variable& va);
+        void addNumber(int& i, std::string& token, std::string& theNum, Variable& va);
+        const char* parsing(const char* input, Variable& va);
         void result();
         void checkForParenthesesPower();
         void checkForMultiplicationDivisionModulo();

@@ -17,6 +17,7 @@
 {}
 -(void) clear;
 -(NSString*) tokens:(NSString*) input;
--(bool) isVarCreated;
+-(bool) isVariable:(char) c;
+
 @end
 

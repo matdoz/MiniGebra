@@ -66,19 +66,12 @@ void Variable::clear()
     variableTable.clear();
 }
 
-void Variable::setCreated(int sw)
+Variable* Variable::getVar(char name)
 {
-    switch (sw) {
-        case 1:
-            created = true;
-            break;
-        case 0:
-            created = false;
-            break;
+    for (int i = 0; i < variableTable.size(); i++)
+    {
+        if(name == variableTable[i].getName())
+            return &variableTable[i];
     }
-}
-
-bool Variable::getCreated()
-{
-    return created;
+    throw std::exception();
 }
