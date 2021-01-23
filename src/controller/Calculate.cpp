@@ -7,6 +7,16 @@
 //
 
 #include "Calculate.hpp"
+void Calculate::parsingError(Variable& va)
+{
+    if (temp != NULL)
+    {
+        va.addVariable(*temp);
+        temp = NULL;
+    }
+    throw std::exception();
+}
+
 void Calculate::addNumber(int& i, std::string& token, std::string& theNum, Variable& va)
 {
     bool isDecimal = false;
@@ -14,7 +24,7 @@ void Calculate::addNumber(int& i, std::string& token, std::string& theNum, Varia
     {
         if (isdigit(token.at(j)) || token.at(j) == '.')
         {
-            /*---------------------
+            /**---------------------
             Error more than one '.'
             ----------------------*/
             if (token.at(j) == '.' && isDecimal) throw std::exception();
@@ -26,18 +36,10 @@ void Calculate::addNumber(int& i, std::string& token, std::string& theNum, Varia
         else break;
     }
     
-    /*--------------------
+    /**------------------
     Error only '.' in input
     ---------------------*/
-    if (theNum == ".")
-    {
-        if (temp != NULL)
-        {
-            va.addVariable(*temp);
-            temp = NULL;
-        }
-        throw std::exception();
-    }
+    if (theNum == ".") parsingError(va);
 
     long double num = std::stold(theNum);
     token_stream.push_back(Token(num,number));
@@ -50,9 +52,9 @@ void Calculate::declareVariable(int& i, std::string& token, Variable& va)
     if (((i + 1) < token.length() && token.at(i + 1) != '=') || (i + 1) == token.length())
     {
     
-        /*--------------------------------------------------------------------------------------------
+        /**-------------------------------------------------------------------------------------------------------
         Checks whether the variable has either numbers or variables on either one or both of its sides
-        ---------------------------------------------------------------------------------------------*/
+        ---------------------------------------------------------------------------------------------------------*/
         if (i > 0 && (i + 1) < token.length() && (token.at(i - 1) == '.' || token.at(i - 1) == ')' || isdigit(token.at(i - 1))))
         {
             if ((token.at(i + 1) == '(' || isdigit(token.at(i + 1)) || va.isVariable(token.at(i + 1)))
@@ -68,9 +70,9 @@ void Calculate::declareVariable(int& i, std::string& token, Variable& va)
             }
         }
         
-        /*-----------------------------------------------------------------------
+        /**-----------------------------------------------------------------------------
         Checks whether the variable has either numbers or variables infront of it
-        ------------------------------------------------------------------------*/
+        ---------------------------------------------------------------------------------*/
         else if ((i + 1) < token.length() && (token.at(i + 1) == '.' || token.at(i + 1) == '(' || isdigit(token.at(i + 1)) || va.isVariable(token.at(i + 1))))
         {
             token_stream.push_back(Token(va.getValue(token.at(i)), number));
@@ -79,9 +81,9 @@ void Calculate::declareVariable(int& i, std::string& token, Variable& va)
             i++;
         }
         
-        /*-------------------------------------------------------------------
+        /**---------------------------------------------------------------------------
         Checks whether the variable has either numbers or variables behind it
-        --------------------------------------------------------------------*/
+        -------------------------------------------------------------------------------*/
         else if (i > 0 && (token.at(i - 1) == ')' || isdigit(token.at(i - 1)) || va.isVariable(token.at(i - 1))))
         {
             i++;
@@ -90,9 +92,9 @@ void Calculate::declareVariable(int& i, std::string& token, Variable& va)
             token_stream.push_back(Token(va.getValue(token.at(i)), number));
         }
         
-        /*-----------------------------------------------------------------------------
+        /**----------------------------------------------------------------------------------
         Inserts the variables value as there are or need for the insertion of operators
-        ------------------------------------------------------------------------------*/
+        -------------------------------------------------------------------------------------*/
         else token_stream.push_back(Token(va.getValue(token.at(i)), number));
     }
 }
@@ -124,51 +126,35 @@ void Calculate::addOperatorOrVariable(int& i, std::string& token, std::string& t
                 }
                 isVariable = false;
             }
-            /*-----------------
+            /**---------------
             Error invalid input
             ------------------*/
-            else
-            {
-                if (temp != NULL)
-                {
-                    va.addVariable(*temp);
-                    temp = NULL;
-                }
-                throw std::exception();
-            }
+            else parsingError(va);
         }
-        /*-----------------
+        /**----------------
         Error invalid input
         ------------------*/
-        else
-        {
-            if (temp != NULL)
-            {
-                va.addVariable(*temp);
-                temp = NULL;
-            }
-            throw std::exception();
-        }
+        else parsingError(va);
     }
 }
 
-/*---------------------------------------------------------------------
+/**--------------------------------------------------------------------------
 Receives the calculation as a string and parses the string into tokens
----------------------------------------------------------------------*/
+-----------------------------------------------------------------------------*/
 const char* Calculate::parsing(const char* input, Variable& va)
 {
     std::string theNum = "";
     std::string token(input);
     token = removeSpaces(input);
     
-    /*------------
+    /**-----------
     Error no input
     -------------*/
     if (token == "") throw std::exception();
     
-    /*--------------------------------------------------
+    /**-----------------------------------------------------
     This is for redeclaring an already declared variable
-    --------------------------------------------------*/
+    ---------------------------------------------------------*/
     if(va.isVariable(token.at(0)) && token.length() >= 3)
         if(token.at(1) == '=')
         {
@@ -176,32 +162,83 @@ const char* Calculate::parsing(const char* input, Variable& va)
             va.removeVariable(token.at(0));
         }
     
-    /*----------------------------
+    /**-----------------------------
     Iterates over the token stream
-    -----------------------------*/
+    --------------------------------*/
     for (int i = 0; i < token.length(); i++)
     {
         isdigit(token.at(i)) || token.at(i) == '.' ? addNumber(i, token, theNum, va) :
         va.isVariable(token.at(i)) && (i + 1) <= token.length() ? declareVariable(i, token, va) : addOperatorOrVariable(i, token, theNum, va);
     }
+    operatorExponent();
     if (isReady) result();
     if (!isVariable) cleanUp(0);
     return answer.c_str();
 }
 
-/*-----------------------------------------------------------------------
+/**-------------------------------------------------------------------------------------------------------------------------------------------
+ Checks if the exponent's first char is a '+' or '-' and wraps a parentheses around the exponent's expression if it finds a case
+ --------------------------------------------------------------------------------------------------------------------------------------------*/
+void Calculate::operatorExponent()
+{
+    for (int i = 0; i < token_stream.size(); i++)
+    {
+        if (token_stream[i].getKind() == '^' && (i + 1) <= (token_stream.size() - 1) && (token_stream[i + 1].getKind() == '+' || token_stream[i + 1].getKind() == '-'))
+        {
+            token_stream.insert(token_stream.begin() + i + 1, Token('('));
+            i += 2;
+            for (int j = i; j < token_stream.size(); j++)
+            {
+                if (token_stream[j].getKind() == '^')
+                {
+                    token_stream.insert(token_stream.begin() + j + 1, Token(')'));
+                    operatorExponent();
+                    return;
+                }
+                
+                if (token_stream[j].getKind() == '(')
+                {
+                    int parenthesesMatch = -1;
+                    for (int k = j; k < token_stream.size(); k++)
+                    {
+                        if (token_stream[k].getKind() == '(') parenthesesMatch++;
+                        
+                        if (token_stream[k].getKind() == ')') parenthesesMatch--;
+                        
+                        if (parenthesesMatch < 0)
+                        {
+                            token_stream.insert(token_stream.begin() + k + 1, Token(')'));
+                            operatorExponent();
+                            return;
+                        }
+                    }
+                }
+                
+                if (token_stream[j].getKind() == number)
+                {
+                    token_stream.insert(token_stream.begin() + j + 1, Token(')'));
+                    operatorExponent();
+                    return;
+                }
+            }
+        }
+    }
+}
+
+/**------------------------------------------------------------------------------
 Calculates the token stream until there is only one token left/the answer
------------------------------------------------------------------------*/
+---------------------------------------------------------------------------------*/
 void Calculate::result()
 {
     while (token_stream.size() > 1 && isReady)
     {
-        if (runTime == 0) checkForParenthesesPower();
+        if (runTime == 0) ParenthesesPowerSyntax();
         
-        if (runTime == 1) checkForMultiplicationDivisionModulo();
+        else if (runTime == 1) MultiplicationDivisionModuloSyntax();
         
-        if (runTime == 2) checkForMinusPlus();
+        else if (runTime == 2) MinusPlusSyntax();
     }
+    
     if (isReady)
     {
         long double result = token_stream[0].getValue();
@@ -210,159 +247,192 @@ void Calculate::result()
     }
 }
 
-/* Leter etter parentes og potens */
-void Calculate::checkForParenthesesPower()
+/**-----------------------------------------------------
+Handles the syntax for parentheses and power '^'
+-------------------------------------------------------*/
+void Calculate::parenthesesCheck()
 {
-    if (isReady) {
+    for (int i = iteration; i < token_stream.size(); i++)
+    {
+
+        if (token_stream[i].getKind() == '^' && !isParentheses)
+        {
+            isPow = true;
+            iteration = i - 1;
+        }
+        
+        if (token_stream[i].getKind() == '(' && secondParenthesesIndex <= 0) firstParenthesesIndex = i;
+        
+        if (token_stream[i].getKind() == '(') parenthesesPair++;
+        
+        if (token_stream[i].getKind() == ')' && secondParenthesesIndex <= 0)
+        {
+            secondParenthesesIndex = i;
+            isParentheses = true;
+        }
+        
+        if (token_stream[i].getKind() == ')') parenthesesPair--;
+    }
+    
+    /**-----------------------
+    Error open parentheses
+    --------------------------*/
+    if (parenthesesPair != 0) throw std::exception();
+}
+
+void Calculate::ParenthesesPowerSyntax()
+{
+    if (isReady)
+    {
         unsigned long length = token_stream.size() - 1;
         switch (token_stream[iteration].getKind())
         {
             case ')':
-                /* Error fant ')' før '(' Kan få feil her noen ganger må undersøkes nærmere*/
+                /**----------------------
+                Error found ')' before '('
+                -------------------------*/
                 throw std::exception();
+                
             case '(':
-                for (int j = iteration; j < token_stream.size(); j++)
-                {
-                    if (token_stream[j].getKind() == '^' && !isParentheses) isPow = true;
-                    
-                    if (token_stream[j].getKind() == '(' && secondParenthesesIndex <= 0) firstParenthesesIndex = j;
-                    
-                    if (token_stream[j].getKind() == '(') parenthesesPair++;
-                    
-                    if (token_stream[j].getKind() == ')' && secondParenthesesIndex <= 0)
-                    {
-                        secondParenthesesIndex = j;
-                        isParentheses = true;
-                    }
-                    
-                    if (token_stream[j].getKind() == ')') parenthesesPair--;
-                }
-                
-                /* Error åpen parentes */
-                if (parenthesesPair != 0)
-                    throw std::exception();
-                
+                parenthesesCheck();
                 break;
+                
             case '^':
-                if (isPow)
+                for (unsigned long i = length; i >= 0; i--)
                 {
-                    isPow = false;
-                    firstParenthesesIndex = - 1;
-                    secondParenthesesIndex = - 1;
-                    isParentheses = false;
-                }
-                
-                if (token_stream[iteration - 1].getKind() == number && token_stream[iteration + 1].getKind() == number)
-                {
-                    if (token_stream[iteration + 2].getKind() == '^')
+                    if (token_stream[i].getKind() == '^')
                     {
-                        iteration += 2;
-                        checkForParenthesesPower();
-                        iteration = - 1;
-                        break;
-                    }
-                    else
-                    {
-                        tempRes = pow(token_stream[iteration - 1].getValue(), token_stream[iteration + 1].getValue());
-                        remove(iteration - 1, 3);
-                        insert(iteration - 1, Token(tempRes, number));
-                        iteration = - 1;
-                        break;
-                    }
-                }
-                
-                if (token_stream[iteration - 1].getKind() == number && token_stream[iteration + 1].getKind() == '(')
-                {
-                    int wait = 0;
-                    for (int i = iteration; i < length; i++)
-                    {
-                        if (token_stream[i].getKind() == '(')
-                            wait++;
-                        
-                        if (token_stream[i].getKind() == ')' && wait == 0)
+                        /**---------------------------------------------------------------------------------------------------------------------------------------------------------
+                        Checks for number ^ number and incase the right hand side number has a further exponent it continues e.g. number ^ number ^ number
+                        -----------------------------------------------------------------------------------------------------------------------------------------------------------*/
+                        if (token_stream[i - 1].getKind() == number && token_stream[i + 1].getKind() == number)
                         {
-                            if (token_stream[i + 1].getKind() == '^')
-                            {
-                                iteration = i + 1;
-                                checkForParenthesesPower();
-                                iteration = - 1;
-                                break;
-                            }
+                            tempRes = pow(token_stream[i - 1].getValue(), token_stream[i + 1].getValue());
+                            remove(i - 1, 3);
+                            insert(i - 1, Token(tempRes, number));
+                            cleanUp(1);
+                            isPow = false;
+                            return;
                         }
-                        if (token_stream[i].getKind() == ')')
-                            wait--;
-                    }
-                    iteration++;
-                    checkForParenthesesPower();
-
-                    while (isPow)
-                        checkForParenthesesPower();
-                    
-                    iteration = - 1;
-                    break;
-                }
-                if ((token_stream[iteration + 1].getKind() == '+' || token_stream[iteration + 1].getKind() == '-') && token_stream[iteration + 2].getKind() == '(' && token_stream[iteration - 1].getKind() == number)
-                {
-                    iteration += 2;
-                    checkForParenthesesPower();
-                    iteration = - 1;
-                    break;
-                }
-                if ((token_stream[iteration - 1].getKind() == number && token_stream[iteration + 2].getKind() == number) && (token_stream[iteration + 1].getKind() == '+' || token_stream[iteration + 1].getKind() == '-'))
-                {
-                    iteration++;
-                    foundOperatorFirst(token_stream[iteration].getKind());
-                    iteration = - 1;
-                    break;
-                }
-                if (token_stream[iteration - 1].getKind() == ')' && (token_stream[iteration + 1].getKind() == '+' || token_stream[iteration + 1].getKind() == '-' || token_stream[iteration + 1].getKind() == number || token_stream[iteration + 1].getKind() == '('))
-                {
-                    int wait = 0;
-                    for (int i = iteration; i > 0; i--)
-                    {
-                        if (token_stream[i].getKind() == '(')
-                            wait++;
                         
-                        if (token_stream[i].getKind() == '(')
+                        else if (token_stream[i - 1].getKind() == number && token_stream[i + 1].getKind() == '(')
                         {
-                            iteration = i;
-                            while (token_stream[i].getKind() == '(' && wait == 0)
-                            {
-                                if (runTime == 0) checkForParenthesesPower();
-                                if (runTime == 1) checkForMultiplicationDivisionModulo();
-                                if (runTime == 2) checkForMinusPlus();
-                            }
-                            if (token_stream[i + 1].getKind() == '^')
-                            {
-                                iteration = i + 1;
-                                checkForParenthesesPower();
-                                
-                                while (isPow)
-                                    checkForParenthesesPower();
-                                
-                                iteration = - 1;
-                                break;
-                            }
+                            cleanUp(1);
+                            isPow = false;
+                            iteration = i + 1;
+                            ParenthesesPowerSyntax();
+                            break;
+                        }
+                        /**----------------------------------------
+                         Skip to the next '^' if:    (...) ^ number
+                         ----------------------------------------*/
+                        else if (token_stream[i - 1].getKind() == ')' && token_stream[i + 1].getKind() == number) {}
+                        
+                        else if (token_stream[i - 1].getKind() == ')' && token_stream[i + 1].getKind() == '(')
+                        {
+                            cleanUp(1);
+                            isPow = false;
+                            iteration = i + 1;
+                            ParenthesesPowerSyntax();
                             break;
                         }
                         
-                        if (token_stream[i].getKind() == ')')
-                            wait--;
+                        else if (token_stream[i - 1].getKind() == number && (token_stream[i + 1].getKind() == '+' || token_stream[i + 1].getKind() == '-') && token_stream[i + 2].getKind() == number)
+                        {
+                            cleanUp(1);
+                            isPow = false;
+                            iteration = i + 1;
+                            foundOperatorFirst(token_stream[i + 1].getKind());
+                            iteration = i - 1;
+                            break;
+                        }
+                        
+                        else if (token_stream[i - 1].getKind() == number && (token_stream[i + 1].getKind() == '+' || token_stream[i + 1].getKind() == '-') && token_stream[i + 2].getKind() == '(')
+                        {
+                            cleanUp(1);
+                            isPow = false;
+                            iteration = i + 2;
+                            ParenthesesPowerSyntax();
+                            break;
+                        }
+                        
+                        else if (token_stream[i - 1].getKind() == ')' && (token_stream[i + 1].getKind() == '+' || token_stream[i + 1].getKind() == '-') && token_stream[i + 2].getKind() == '(')
+                        {
+                            cleanUp(1);
+                            isPow = false;
+                            iteration = i + 2;
+                            ParenthesesPowerSyntax();
+                            break;
+                        }
+                        
+                        /**----------------------------------------------------
+                         Skip to the next '^' if:    (...) ^ minus/plus number
+                         ------------------------------------------------------*/
+                        else if (token_stream[i - 1].getKind() == ')' && (token_stream[i + 1].getKind() == '+' || token_stream[i + 1].getKind() == '-') && token_stream[i + 2].getKind() == number) {}
+                        
+                        /**---------------------
+                        Error invalid input to '^'
+                        ------------------------*/
+                        else throw std::exception();
                     }
-                    break;
                 }
-                /* Error ugyldig input til '^' */
-                throw std::exception();
+                
+                /**-------------------------
+                 Error empty parentheses
+                 ---------------------------*/
+                if (secondParenthesesIndex-firstParenthesesIndex == 1) throw std::exception();
+                
+                /**------------------------------------------------
+                 Error empty parentheses with operator inside
+                 --------------------------------------------------*/
+                if (secondParenthesesIndex-firstParenthesesIndex == 2 && isOperator(token_stream[firstParenthesesIndex + 1].getKind())) throw std::exception();
+                
+                
+                if (token_stream[firstParenthesesIndex + 1].getKind() == number && secondParenthesesIndex-firstParenthesesIndex == 2)
+                {
+                    tempRes = token_stream[firstParenthesesIndex + 1].getValue();
+                    remove(firstParenthesesIndex, 3);
+                    insert(firstParenthesesIndex, Token(tempRes, number));
+                    
+                    if (firstParenthesesIndex - 1 >= 0 && (token_stream[firstParenthesesIndex - 1].getKind() == number && token_stream[firstParenthesesIndex + 1].getKind() == number))
+                    {
+                        insert(firstParenthesesIndex, Token('*'));
+                        insert(firstParenthesesIndex + 2, Token('*'));
+                        cleanUp(1);
+                        return;
+                    }
+                    
+                    if (firstParenthesesIndex - 1 >= 0 && token_stream[firstParenthesesIndex - 1].getKind() == number && !isTrigger)
+                    {
+                        insert(firstParenthesesIndex, Token('*'));
+                        isTrigger = true;
+                    }
+                    
+                    if ((token_stream[firstParenthesesIndex + 1].getKind() == number && !isTrigger) || (token_stream[firstParenthesesIndex + 1].getKind() == '(' && !isTrigger)) insert(firstParenthesesIndex + 1, Token('*'));
+                    cleanUp(1);
+                    return;
+                }
+                
+                if ((iteration >= length && iteration != -1) || (isParentheses && !isPow))
+                {
+                    if (isParentheses) iteration = firstParenthesesIndex;
+                    else iteration = 0;
+                    runTime++;
+                    if (runTime > 0) runTime = 1;
+                    return;
+                }
         }
+            
         
-        /* Error tom parentes */
-        if (secondParenthesesIndex-firstParenthesesIndex == 1)
-            throw std::exception();
+        /**-------------------------
+         Error empty parentheses
+         ---------------------------*/
+        if (secondParenthesesIndex-firstParenthesesIndex == 1) throw std::exception();
         
-        /* Error tom parentes operator inni */
-        if (secondParenthesesIndex-firstParenthesesIndex == 2 && isOperator(token_stream[firstParenthesesIndex + 1].getKind()))
-            throw std::exception();
-        
+        /**------------------------------------------------
+         Error empty parentheses with operator inside
+         --------------------------------------------------*/
+        if (secondParenthesesIndex-firstParenthesesIndex == 2 && isOperator(token_stream[firstParenthesesIndex + 1].getKind())) throw std::exception();
         
         if (token_stream[firstParenthesesIndex + 1].getKind() == number && secondParenthesesIndex-firstParenthesesIndex == 2)
         {
@@ -401,15 +471,19 @@ void Calculate::checkForParenthesesPower()
     }
 }
 
-/* Leter etter gange, dele og modulo */
-void Calculate::checkForMultiplicationDivisionModulo()
+/**--------------------------------------
+ Searches for '*', '/' and '%' (modulo)
+ ---------------------------------------*/
+void Calculate::MultiplicationDivisionModuloSyntax()
 {
-    if (isReady) {
+    if (isReady)
+    {
         unsigned long length = token_stream.size() - 1;
         
-        /* Error '*', '/' eller '%' uten tall foran */
-        if (token_stream[0].getKind() == '*' || token_stream[0].getKind() == '/' || token_stream[0].getKind() == '%')
-            throw std::exception();
+        /**----------------------------------------------
+         Error '*', '/' and '%' missing number infront
+         -----------------------------------------------*/
+        if (token_stream[0].getKind() == '*' || token_stream[0].getKind() == '/' || token_stream[0].getKind() == '%') throw std::exception();
         
         switch (token_stream[iteration].getKind())
         {
@@ -431,15 +505,19 @@ void Calculate::checkForMultiplicationDivisionModulo()
     }
 }
 
-/* Leter etter pluss og minus */
-void Calculate::checkForMinusPlus()
+/**-------------------
+ Searches for '+', '-'
+ ---------------------*/
+void Calculate::MinusPlusSyntax()
 {
-    if (isReady) {
+    if (isReady)
+    {
         unsigned long length = token_stream.size() - 1;
         
-        /* Error '+' eller '-' uten tall bak */
-        if (token_stream[length].getKind() == '+' || token_stream[length].getKind() == '-')
-            throw std::exception();
+        /**--------------------------------------
+         Error '+', '-' missing number behind
+         ----------------------------------------*/
+        if (token_stream[length].getKind() == '+' || token_stream[length].getKind() == '-') throw std::exception();
         
         switch (token_stream[iteration].getKind())
         {
@@ -464,16 +542,20 @@ void Calculate::checkForMinusPlus()
     }
 }
 
-/* Funnet gange, dele eller modulo, utfører regneoperasjon */
+/**----------------------------------------
+ Calculates '*', '/' and '%' expressions
+ ------------------------------------------*/
 void Calculate::MultiplicationDivisionModulo(char op)
 {
-    if (isReady) {
+    if (isReady)
+    {
         unsigned long length = token_stream.size() - 1;
         while(1)
         {
-            /* Error '*', '/' eller '%' etterfulgt av en operator av samme prioritet */
-            if (extraIterator > 0 && (token_stream[iteration + extraIterator].getKind() == '*' || token_stream[iteration + extraIterator].getKind() == '/' || token_stream[iteration + extraIterator].getKind() == '%'))
-                throw std::exception();
+            /**---------------------------------------------------------------------------------------
+             Error '*', '/' or '%' followed by operator of same priority e.g. number * * number
+             -----------------------------------------------------------------------------------------*/
+            if (extraIterator > 0 && (token_stream[iteration + extraIterator].getKind() == '*' || token_stream[iteration + extraIterator].getKind() == '/' || token_stream[iteration + extraIterator].getKind() == '%')) throw std::exception();
             
             if (token_stream[iteration + extraIterator].getKind() == number)
             {
@@ -482,24 +564,24 @@ void Calculate::MultiplicationDivisionModulo(char op)
                 break;
             }
             
-            /* Error '*', '/' eller '%' uten tall bak */
-            if (isParentheses)
-                if (iteration + extraIterator == secondParenthesesIndex)
-                    throw std::exception();
+            /**---------------------------------------------
+             Error '*', '/' or '%' missing number behind
+             ----------------------------------------------*/
+            if (isParentheses) if (iteration + extraIterator == secondParenthesesIndex) throw std::exception();
             
-            /* Error '*', '/' eller '%' uten tall bak */
-            if (!isParentheses)
-                if (iteration + extraIterator == length)
-                    throw std::exception();
+            /**---------------------------------------------
+             Error '*', '/' or '%' missing number behind
+             ----------------------------------------------*/
+            if (!isParentheses) if (iteration + extraIterator == length) throw std::exception();
             
             if (token_stream[iteration + extraIterator].getKind() == '-') negative++;
             
             extraIterator++;
         }
-        
-        /* Error '*', '/' eller '%' uten tall foran */
-        if (isOperator(token_stream[iteration - 1].getKind()) && token_stream[iteration - 1].getKind() != ')')
-            throw std::exception();
+        /**---------------------------------------------
+         Error '*', '/' or '%' missing number infront
+         ----------------------------------------------*/
+        if (isOperator(token_stream[iteration - 1].getKind()) && token_stream[iteration - 1].getKind() != ')') throw std::exception();
         
         if (negative == 0 || (negative % 2 == 0 && negative != 0))
         {
@@ -507,12 +589,14 @@ void Calculate::MultiplicationDivisionModulo(char op)
             
             if (op == '/')
             {
-                /* Error udefinert å dele på 0 */
-                if (token_stream[numberIndex].getValue() == 0)
-                    throw std::exception();
+                /**------------------------------
+                 Error undefined division by 0
+                 --------------------------------*/
+                if (token_stream[numberIndex].getValue() == 0) throw std::exception();
                 
                 tempRes = token_stream[iteration - 1].getValue() / token_stream[numberIndex].getValue();
             }
+            
             if (op == '%')
             {
                 if (floor(token_stream[iteration - 1].getValue()) == token_stream[iteration - 1].getValue() && floor(token_stream[numberIndex].getValue()) == token_stream[numberIndex].getValue())
@@ -521,10 +605,13 @@ void Calculate::MultiplicationDivisionModulo(char op)
                     
                     else tempRes = (int) token_stream[iteration - 1].getValue() % (int) token_stream[numberIndex].getValue();
                 }
-                /* Error % fungerer kun på heltall */
+                /**--------------------------------------------
+                 Error '%' only works with whole numbers
+                 ----------------------------------------------*/
                 else throw std::exception();
             }
         }
+        
         if (negative % 2 == 1 && negative != 0)
         {
             if (op == '*')
@@ -532,15 +619,18 @@ void Calculate::MultiplicationDivisionModulo(char op)
                 tempRes = - token_stream[iteration - 1].getValue() * token_stream[numberIndex].getValue();
                 negative = 0;
             }
+            
             if (op == '/')
             {
-                /* Error udefinert å dele på 0 */
-                if (token_stream[numberIndex].getValue() == 0)
-                    throw std::exception();
+                /**------------------------------
+                 Error undefined division by 0
+                 --------------------------------*/
+                if (token_stream[numberIndex].getValue() == 0) throw std::exception();
                 
                 tempRes = - token_stream[iteration - 1].getValue() / token_stream[numberIndex].getValue();
                 negative = 0;
             }
+            
             if (op == '%')
             {
                 if (floor(token_stream[iteration - 1].getValue()) == token_stream[iteration - 1].getValue() && floor(token_stream[numberIndex].getValue()) == token_stream[numberIndex].getValue())
@@ -551,10 +641,13 @@ void Calculate::MultiplicationDivisionModulo(char op)
                     negative = 0;
                 }
                 
-                /* Error '%' fungerer kun på heltall */
+                /**--------------------------------------------
+                 Error '%' only works with whole numbers
+                 ----------------------------------------------*/
                 else throw std::exception();
             }
         }
+        
         if (isParentheses && (token_stream[iteration - 2].getKind() == '(' && token_stream[numberIndex + 1].getKind() == ')'))
         {
             remove(iteration - 2, (numberIndex + 4 - iteration));
@@ -573,6 +666,7 @@ void Calculate::MultiplicationDivisionModulo(char op)
                 
             cleanUp(2);
         }
+        
         if (!isParentheses || !isTrigger)
         {
             remove(iteration - 1, numberIndex + 2 - iteration);
@@ -583,20 +677,23 @@ void Calculate::MultiplicationDivisionModulo(char op)
     }
 }
 
-/* Funnet pluss eller minus, utfører regneoperasjon */
+/**------------------------------------
+ Calculates '+' and  '-' expressions
+ --------------------------------------*/
 void Calculate::MinusPlus(char op)
 {
-    if (isReady) {
+    if (isReady)
+    {
         unsigned long length = token_stream.size() - 1;
         if (op == '-') negative++;
         
         while (1)
         {
             extraIterator++;
-            
-            /* Error '+' eller '-' uten etterfølgende tall */
-            if (token_stream[iteration + extraIterator].getKind() == ')')
-                throw std::exception();
+            /**----------------------------------------
+             Error '+' or '-' missing number behind
+             ------------------------------------------*/
+            if (token_stream[iteration + extraIterator].getKind() == ')') throw std::exception();
             
             if (token_stream[iteration + extraIterator].getKind() == '-') negative++;
             
@@ -606,11 +703,12 @@ void Calculate::MinusPlus(char op)
                 extraIterator = 0;
                 break;
             }
-            
-            /* Error */
-            if (iteration + extraIterator == length)
-                throw std::exception();
+            /**---
+             Error
+             ----*/
+            if (iteration + extraIterator == length) throw std::exception();
         }
+        
         if (negative == 0)
         {
             if (op == '-') tempRes = token_stream[iteration - 1].getValue() - token_stream[numberIndex].getValue();
@@ -641,6 +739,7 @@ void Calculate::MinusPlus(char op)
             cleanUp(5);
             return;
         }
+        
         if (!isParentheses || !isTrigger)
         {
             remove(iteration - 1, numberIndex + 2 - iteration);
@@ -653,10 +752,13 @@ void Calculate::MinusPlus(char op)
     }
 }
 
-/* Funnet operator */
+/**---------------------------------------------------------------
+Found '+' or '-' before a number e.g. - number or + number
+------------------------------------------------------------------*/
 void Calculate::foundOperatorFirst(char op)
 {
-    if (isReady) {
+    if (isReady)
+    {
         if (op == '-') negative++;
         
         if (!isParentheses)
@@ -667,6 +769,7 @@ void Calculate::foundOperatorFirst(char op)
                 if (token_stream[iteration + extraIterator].getKind() == '-') negative++;
             }
         }
+        
         if (isParentheses)
         {
             while (token_stream[iteration + extraIterator].getKind() != number && token_stream[iteration + extraIterator].getKind() != ')')
@@ -678,9 +781,10 @@ void Calculate::foundOperatorFirst(char op)
         
         numberIndex = iteration + extraIterator;
         
-        /* Error '+' eller '-' uten etterfølgende tall */
-        if (token_stream[numberIndex].getKind() != number)
-            throw std::exception();
+        /**----------------------------------------
+         Error '+' or '-' missing number behind
+         ------------------------------------------*/
+        if (token_stream[numberIndex].getKind() != number) throw std::exception();
         
         if (negative % 2 == 1) tempRes = - token_stream[numberIndex].getValue();
         
@@ -716,6 +820,7 @@ void Calculate::foundOperatorFirst(char op)
             iteration = - 1;
             runTime = 0;
         }
+        
         if (isParentheses && secondParenthesesIndex - (iteration - 1) != 3)
         {
             insert(iteration, Token(tempRes, number));
@@ -726,19 +831,25 @@ void Calculate::foundOperatorFirst(char op)
     }
 }
 
-/* Setter inn tokens i vektoren */
+/**------------------------------
+ Inserts tokens into the vector
+ --------------------------------*/
 void Calculate::insert(int index, Token token)
 {
     token_stream.insert(token_stream.begin() + index, token);
 }
 
-/* Sletter tokens fra vektoren */
+/**------------------------------
+ Removes tokens from the vector
+ --------------------------------*/
 void Calculate::remove(int removeIndex, int removeTimes)
 {
     for (int i = 0; i < removeTimes; i++) token_stream.erase(token_stream.begin() + removeIndex);
 }
 
-/* Rydder opp i variablene */
+/**---------------------------------------
+ Resets variables depending on input
+ -----------------------------------------*/
 void Calculate::cleanUp(int whichFunction)
 {
     switch (whichFunction)
@@ -799,17 +910,17 @@ void Calculate::cleanUp(int whichFunction)
     }
 }
 
-/*---------------------------
+/**----------------------------
 Checks if char is an operator
----------------------------*/
+-------------------------------*/
 bool Calculate::isOperator(char op)
 {
     return (op == '(' || op == ')' || op == '*' || op == '/' || op == '+' || op == '-' || op == '%' || op == '^');
 }
 
-/*---------------------------------------------------
+/**------------------------------------------------------------
 Function to remove spaces, found on geeksforgeeks.org
----------------------------------------------------*/
+---------------------------------------------------------------*/
 std::string Calculate::removeSpaces(std::string str)
 {
     std::stringstream ss;
@@ -828,10 +939,14 @@ std::string Calculate::setDecimalPoint(long double value)
 {
     std::ostringstream streamObj1;
     std::string ans;
-    /* Can use: std::fixed, std::scientific */
+    /**-----------------------------------
+     Can use: std::fixed, std::scientific
+     ------------------------------------*/
     streamObj1 << std::defaultfloat;
     
-    /* Add double to stream */
+    /**----------------------
+     Add double to stream
+     -----------------------*/
     streamObj1 << value;
     ans = streamObj1.str();
     return ans;

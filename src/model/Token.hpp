@@ -12,8 +12,6 @@
 #include <stdio.h>
 #include <vector>
 #include <sstream>
-#include <cmath>
-#include <math.h>
 
 extern "C"
 {

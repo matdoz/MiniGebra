@@ -21,8 +21,8 @@ extern "C"
         std::vector<Token> token_stream;
         int runTime = 0;
         int iteration = 0;
-        int firstParenthesesIndex = 0;
-        int secondParenthesesIndex = 0;
+        int firstParenthesesIndex = -1;
+        int secondParenthesesIndex = -1;
         int numberIndex = 0;
         int negative = 0;
         int extraIterator = 0;
@@ -41,10 +41,13 @@ extern "C"
         void declareVariable(int& i, std::string& token, Variable& va);
         void addNumber(int& i, std::string& token, std::string& theNum, Variable& va);
         const char* parsing(const char* input, Variable& va);
+        void parsingError(Variable& va);
+        void parenthesesCheck();
+        void operatorExponent();
         void result();
-        void checkForParenthesesPower();
-        void checkForMultiplicationDivisionModulo();
-        void checkForMinusPlus();
+        void ParenthesesPowerSyntax();
+        void MultiplicationDivisionModuloSyntax();
+        void MinusPlusSyntax();
         void MultiplicationDivisionModulo(char op);
         void MinusPlus(char op);
         void foundOperatorFirst(char op);
